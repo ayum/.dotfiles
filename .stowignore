@@ -1,0 +1,20 @@
+# Ignore Git files
+\.git$
+\.gitignore$
+\.gitmodules$
+
+# Ignore documentation and text files
+README\.md
+LICENSE
+docs/
+\.txt$
+
+# Ignore system or editor metadata
+\.DS_Store$
+\.swp$
+\.idea/
+\.vscode/
+
+# Ignore any installation or setup scripts
+\.sh$
+install/

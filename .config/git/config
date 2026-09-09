@@ -90,7 +90,7 @@
 	xparse = "!f() { :; }; f"
 
 [diff]
-	external = "/nix/store/663fidfna9fcpr1gpxvy2q16vqpl8frb-difftastic-0.61.0/bin/difft --color auto --background dark --display side-by-side"
+	external = "difft --color auto --background dark --display side-by-side"
 
 [init]
 	defaultBranch = "master"
