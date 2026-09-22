@@ -78,13 +78,15 @@
 	r = "rebase"
 	rq = "!f() { : git rebase; subj=\"$(git log -1 --format=%s)\"; subj=\"${subj##*[Ff][Ii][Xx][Uu][Pp]! }\"; lastarg=\"${@:$#:1}\"; [[ $# == 0 ]] && lastarg=\"\"; commitish=\"${lastarg}\"; [[ \"$lastarg\" == -* ]] && commitish=\"\"; [[ \"$lastarg\" != -* ]] && lastarg=\"\"; [[ $# -le 1 ]] && set -- \"\"; git rebase \"${@:1:$#-1}\" $lastarg --autosquash $(git log -1 --format=%H --grep=\"^${subj}$\")^; }; f"
 	s = "status"
+	st = "status"
+	sw = "switch"
 	t = "stash"
 	u = "pull"
 	ut = "pull --autostash"
 	utm = "pull --autostash --merge"
 	utr = "pull --autostash --rebase"
 	v = "rev-parse"
-	w = "switch"
+	w = "worktree"
 	xdang = "!git fsck --lost-found --name-objects --no-reflogs | grep \"dangling commit\" | sed -e \"s@dangling commit @@\" | xargs git show -s --format=\"%ct %H %cd %s\" | sort -r | sed -e \"s@^\\\\w*\\\\s*@@\" | less -F"
 	xmain = "!mainbranch=\"$(git rev-parse --abbrev-ref origin/HEAD)\"; echo ${mainbranch#*/}"
 	xparse = "!f() { :; }; f"
@@ -93,7 +95,7 @@
 	external = "difft --color auto --background dark --display side-by-side"
 
 [init]
-	defaultBranch = "master"
+	defaultBranch = "main"
 
 [pull]
 	ff = "only"
