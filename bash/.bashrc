@@ -5,7 +5,7 @@ if [ -f /etc/bashrc ]; then
 fi
 
 if [ "$PS1" ]; then
-   PS1="${PS1%\\\$*}↵\n\\$ "
+   PS1="${PS1%\\\$*}\n\[\e[${PROMPT_COLOR}m\]⤷\[\e[0m\]\\$ "
 fi
 
 if [ -d ~/.bashrc.d ]; then
