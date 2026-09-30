@@ -1,6 +1,3 @@
-[advice]
-	diverging = "false"
-
 [alias]
 	a = "add"
 	aa = "add --all"
@@ -103,5 +100,15 @@
 [push]
 	autoSetupRemote = "true"
 
+[tig]
+        tab-size = 4
+
+[core]
+        editor = nvim
+
 [include]
 	path = "user.inc"
+
+[advice]
+	diverging = "false"
+
