@@ -4,8 +4,12 @@ if [ -f /etc/bashrc ]; then
     . /etc/bashrc
 fi
 
+if [ -f /etc/bash.bashrc ]; then
+    . /etc/bash.bashrc
+fi
+
 if [ "$PS1" ]; then
-   PS1="${PS1%\\\$*}\n\[\e[${PROMPT_COLOR}m\]⤷\[\e[0m\]\\$ "
+    PS1="\[\033[01;32m\]\u\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\n\[\033[01;32m\]⤷\[\033[00m\]\$ "
 fi
 
 if [ -d ~/.bashrc.d ]; then
@@ -17,3 +21,6 @@ if [ -d ~/.bashrc.d ]; then
 fi
 unset rc
 
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
