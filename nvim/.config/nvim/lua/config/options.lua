@@ -12,3 +12,7 @@ vim.opt.fillchars = {
 }
 
 vim.opt.spelllang = { "en", "ru" }
+
+vim.opt.tabstop = 4      -- Табуляция равна 4 пробелам
+vim.opt.shiftwidth = 4   -- Размер автоматического отступа равен 4 пробелам
+vim.opt.softtabstop = 4  -- Нажатие Tab в режиме вставки добавляет 4 пробела
