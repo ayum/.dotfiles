@@ -61,3 +61,8 @@ vim.keymap.set("t", "<M-H>", "<Home>", { desc = "Home" })
 vim.keymap.set("t", "<M-L>", "<End>", { desc = "End" })
 vim.keymap.set("t", "<M-J>", "<PageDown>", { desc = "Page Down" })
 vim.keymap.set("t", "<M-K>", "<PageUp>", { desc = "Page Up" })
+
+-- Make every existing keymap work while the terminal is in Russian layout.
+-- Last, so the mappings above are registered before the module mirrors them, and so a failure here
+-- cannot take the mappings above down with it.
+require("config.ru_layout").setup()
