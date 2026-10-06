@@ -8,6 +8,13 @@ vim.keymap.set("n", "J", "<C-d>", { desc = "Scroll Half Page Down" })
 vim.keymap.set("n", "K", "<C-u>", { desc = "Scroll Half Page Up" })
 vim.keymap.set("n", "L", "$", { desc = "Go to End of Line" })
 
+-- Visual/Select-mode J/K scroll while dragging the selection
+vim.keymap.set({ "v", "x" }, "J", "<C-d>", { desc = "Scroll Half Page Down" })
+vim.keymap.set({ "v", "x" }, "K", "<C-u>", { desc = "Scroll Half Page Up" })
+-- Visual/Select-mode H/L as Home/End (start/end of line), dragging the selection
+vim.keymap.set({ "v", "x" }, "H", "^", { desc = "Go to Start of Line" })
+vim.keymap.set({ "v", "x" }, "L", "$", { desc = "Go to End of Line" })
+
 -- Keep scroll-half-page on K even in LSP buffers (overrides buffer-local hover)
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("UserKeymapsLsp", { clear = true }),
