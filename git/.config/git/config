@@ -112,3 +112,6 @@
 [advice]
 	diverging = "false"
 
+[worktree]
+    useRelativePaths = true
+
