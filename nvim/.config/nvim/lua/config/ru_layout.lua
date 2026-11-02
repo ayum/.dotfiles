@@ -182,6 +182,14 @@ local function add(us, ru)
     return
   end
 
+  -- `.` and `,` exist in both layouts and reach Neovim as the very same byte, from the English key
+  -- (dot-repeat, reverse f/t) and from the Russian one (search forwards/backwards). A mapping cannot
+  -- tell them apart, so it would hijack the key in every layout. Leave such keys to Neovim: search
+  -- stays reachable through the key that produces a literal `/` (the US `|` key, see above).
+  if ru:byte(1) < 0x80 then
+    return
+  end
+
   RU_TO_US[ru] = us
   US_TO_RU[us] = ru
   map(MODES, ru, us)
