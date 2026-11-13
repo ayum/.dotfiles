@@ -16,6 +16,9 @@ fi
 if [[ ":$PATH:" != *":$HOME/.opencode/bin:"* ]]; then
     PATH="$HOME/.opencode/bin:$PATH"
 fi
+if [[ ":$PATH:" != *":$HOME/.kimi-code/bin:"* ]]; then
+    PATH="$HOME/.kimi-code/bin:$PATH"
+fi
 LLVM="$(ls -d /usr/lib/llvm-* 2>/dev/null | sort -V | tail -n 1)"
 if [[ ":$PATH:" != *":$LLVM/bin:"* ]]; then
     PATH="$LLVM/bin:$PATH"
