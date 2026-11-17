@@ -1,0 +1,12 @@
+{
+  "iteration": 8,
+  "status": "accepted",
+  "checks": [
+    {
+      "name": "static_contract",
+      "status": "passed",
+      "notes": "Lead retains bash fallback ask while specific read-only inspection commands are allowlisted."
+    }
+  ],
+  "residual_risks": []
+}

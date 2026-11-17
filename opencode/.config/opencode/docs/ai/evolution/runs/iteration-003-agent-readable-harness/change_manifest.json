@@ -1,0 +1,82 @@
+{
+  "iteration": 3,
+  "changes": [
+    {
+      "id": "chg-1",
+      "type": "improvement",
+      "description": "Convert AGENTS.md into a shorter harness index and move detailed agent, command, evidence, and check contracts into docs/ai/harness.",
+      "files": [
+        "AGENTS.md",
+        "docs/ai/harness/README.md",
+        "docs/ai/harness/agents.md",
+        "docs/ai/harness/commands.md",
+        "docs/ai/harness/evidence.md",
+        "docs/ai/harness/checks.md"
+      ],
+      "failure_pattern": "Harness knowledge was spread across global instructions, commands, agents, and evolution docs without a dedicated agent-readable map.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-003-agent-readable-harness/evaluation.md",
+        "docs/ai/evolution/runs/iteration-003-agent-readable-harness/analysis/overview.md"
+      ],
+      "predicted_fixes": [
+        "agents-find-contracts-without-large-agents-md",
+        "command-and-agent-contracts-have-versioned-source-of-truth"
+      ],
+      "risk_tasks": [
+        "agents-md-loses-critical-global-rule",
+        "harness-docs-duplicate-command-files"
+      ],
+      "constraint_level": "memory",
+      "why_this_component": "The root issue is harness knowledge layout and agent readability, so the smallest sufficient change is documentation structure rather than command or agent behavior."
+    },
+    {
+      "id": "chg-2",
+      "type": "new",
+      "description": "Add a no-dependency local harness validator for config, frontmatter, feature flow, harness docs, benchmark evidence terms, and AHE manifests.",
+      "files": [
+        "scripts/check-harness.mjs",
+        "docs/ai/harness/checks.md"
+      ],
+      "failure_pattern": "Important harness invariants were documented but not mechanically checked.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-003-agent-readable-harness/evaluation.md"
+      ],
+      "predicted_fixes": [
+        "frontmatter-drift-caught-locally",
+        "default-agent-regression-caught-locally",
+        "sidecars-in-feature-flow-caught-locally",
+        "manifest-shape-errors-caught-locally"
+      ],
+      "risk_tasks": [
+        "validator-blocks-valid-future-run-shape",
+        "validator-becomes-too-broad"
+      ],
+      "constraint_level": "tool",
+      "why_this_component": "The invariant failures are structural and cheap to detect locally, so a small repository script is more reliable than another prose rule."
+    },
+    {
+      "id": "chg-3",
+      "type": "improvement",
+      "description": "Extend benchmark documentation with executable OpenCode replay commands and an explicit evidence taxonomy.",
+      "files": [
+        "docs/ai/evolution/benchmarks/manual-scenarios.md",
+        "docs/ai/harness/evidence.md",
+        "docs/ai/evolution/runs/iteration-003-agent-readable-harness/evaluation.md"
+      ],
+      "failure_pattern": "Baseline scenarios relied on manual-oracle evidence and did not define when transcript replay or live smoke evidence is required.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-003-agent-readable-harness/evaluation.md"
+      ],
+      "predicted_fixes": [
+        "benchmark-can-run-transcript-replay",
+        "manual-oracle-not-mistaken-for-routing-proof"
+      ],
+      "risk_tasks": [
+        "transcript-replay-overstated-as-full-runtime-proof",
+        "benchmark-docs-become-too-heavy"
+      ],
+      "constraint_level": "workflow",
+      "why_this_component": "The failure is in evaluation workflow and evidence standards, so the change belongs in benchmark and evidence docs."
+    }
+  ]
+}

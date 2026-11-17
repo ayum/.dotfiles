@@ -1,0 +1,29 @@
+{
+  "iteration": 6,
+  "changes": [
+    {
+      "id": "chg-1-feature-intake-research-boundary",
+      "type": "improvement",
+      "description": "Clarify that lead intake in /feature is classification and handoff construction, not broad technical discovery.",
+      "files": [
+        "commands/feature.md",
+        "docs/ai/harness/commands.md"
+      ],
+      "failure_pattern": "With declared technical uncertainty, lead could inspect broadly before delegating to researcher.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-006-lead-delegation-audit/evaluation.md",
+        "docs/ai/evolution/runs/iteration-006-lead-delegation-audit/analysis/overview.md"
+      ],
+      "predicted_fixes": [
+        "researcher-gets-first-substantive-technical-discovery",
+        "lead-handoff-includes-objective-uncertainty-constraints-evidence"
+      ],
+      "risk_tasks": [
+        "do-not-make-researcher-universal",
+        "preserve-minimal-lead-routing-context"
+      ],
+      "constraint_level": "command",
+      "why_this_component": "The causal wording lived in the /feature command and its documented command contract."
+    }
+  ]
+}

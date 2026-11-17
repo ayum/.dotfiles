@@ -1,0 +1,55 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    "@slkiser/opencode-quota@latest"
+  ],
+  "model": "opencode-go/kimi-k3.1-pro",
+  "small_model": "opencode-go/glm-5.3-flash",
+  "default_agent": "lead",
+  "share": "disabled",
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 10000
+  },
+  "permission": {
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "lsp": "allow",
+    "todowrite": "allow",
+    "edit": "ask",
+    "bash": "ask",
+    "webfetch": "ask",
+    "websearch": "ask",
+    "external_directory": "deny"
+  },
+  "agent": {
+    "build": {
+      "permission": {
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow",
+        "lsp": "allow",
+        "todowrite": "allow",
+        "edit": "allow",
+        "bash": "allow",
+        "webfetch": "allow",
+        "websearch": "allow",
+        "task": "allow"
+      }
+    },
+    "lead": { "temperature": 0.1 },
+    "scoper": { "temperature": 0.1 },
+    "designer": { "temperature": 0.4 },
+    "researcher": { "temperature": 0.2 },
+    "specifier": { "temperature": 0.1 },
+    "developer": { "temperature": 0.2 },
+    "reviewer": { "temperature": 0.1 },
+    "evaluator": { "temperature": 0.1 },
+    "debugger": { "temperature": 0.1 },
+    "evolver": { "temperature": 0.1 }
+  }
+}

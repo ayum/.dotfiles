@@ -1,0 +1,30 @@
+{
+  "iteration": 11,
+  "changes": [
+    {
+      "id": "chg-1-lead-cd-which-allowlist",
+      "type": "update",
+      "description": "Allow lead to run cd and which without approval prompts.",
+      "files": [
+        "agents/lead.md",
+        "scripts/check-harness.mjs"
+      ],
+      "failure_pattern": "Lead prompts for harmless navigation and command-discovery shell commands during normal repo inspection.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-011-lead-cd-which-permissions/evaluation.md",
+        "docs/ai/evolution/runs/iteration-011-lead-cd-which-permissions/analysis/overview.md"
+      ],
+      "predicted_fixes": [
+        "lead-can-run-cd-without-prompt",
+        "lead-can-run-which-without-prompt",
+        "unknown-bash-commands-still-ask"
+      ],
+      "risk_tasks": [
+        "avoid-over-broad-bash-patterns",
+        "preserve-lead-edit-deny"
+      ],
+      "constraint_level": "tool",
+      "why_this_component": "OpenCode bash prompts are controlled by agent permission frontmatter."
+    }
+  ]
+}

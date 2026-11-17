@@ -1,0 +1,16 @@
+{
+  "engines": {
+    "node": "^22.9.0 || ^24.0.0"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.14.41",
+    "@opentui/core": "0.2.5",
+    "@opentui/solid": "0.2.5",
+    "solid-js": "1.9.12"
+  },
+  "overrides": {
+    "@babel/core": "7.29.7",
+    "brace-expansion": "5.0.9",
+    "uuid": "14.0.0"
+  }
+}

@@ -1,0 +1,210 @@
+{
+  "iteration": 4,
+  "iteration_id": "iteration-004-orchestration-audit",
+  "status": "approved_scope_applied",
+  "applied": true,
+  "application_status": "applied_approved_scope",
+  "scope": "OpenCode harness orchestration only; user approved and developer applied only chg-1 and chg-2; chg-3 and chg-4 remain deferred and unapplied.",
+  "approval_context": {
+    "approved_by_user": true,
+    "approval_scope": "Apply only chg-1-ahe-run-lifecycle-validator and chg-2-evolve-evaluation-only-contract in this pass.",
+    "implementation_completed": true,
+    "evidence": [
+      "docs/ai/evolution/runs/iteration-004-orchestration-audit/pre_apply_evaluation.md:1-15",
+      "docs/ai/evolution/runs/iteration-004-orchestration-audit/pre_apply_evaluation.md:222-235",
+      "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/pre_apply_approval.md:17-21",
+      "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/pre_apply_approval.md:100-116"
+    ]
+  },
+  "approved_changes": [
+    "chg-1-ahe-run-lifecycle-validator",
+    "chg-2-evolve-evaluation-only-contract"
+  ],
+  "not_approved_changes": [
+    {
+      "id": "chg-3-slash-command-contract-coverage",
+      "status": "deferred_not_approved",
+      "reason": "Explicitly out of scope for this apply pass by user approval and pre-apply debugger handoff. Do not apply in this pass."
+    },
+    {
+      "id": "chg-4-design-open-design-baseurl-contract",
+      "status": "deferred_not_approved",
+      "reason": "Explicitly out of scope for this apply pass by user approval and pre-apply debugger handoff. Do not apply in this pass."
+    }
+  ],
+  "developer_scope": {
+    "allowed_change_ids": [
+      "chg-1-ahe-run-lifecycle-validator",
+      "chg-2-evolve-evaluation-only-contract"
+    ],
+    "allowed_files": [
+      "scripts/check-harness.mjs",
+      "docs/ai/harness/checks.md",
+      "commands/evolve.md",
+      "docs/ai/harness/commands.md"
+    ],
+    "forbidden_change_ids_this_pass": [
+      "chg-3-slash-command-contract-coverage",
+      "chg-4-design-open-design-baseurl-contract"
+    ],
+    "notes": "In docs/ai/harness/commands.md, limit edits to chg-2 /evolve wording; do not implement chg-3 coverage changes or chg-4 /design Open Design baseUrl changes."
+  },
+  "changes": [
+    {
+      "id": "chg-1-ahe-run-lifecycle-validator",
+      "type": "improvement",
+      "status": "implemented_applied",
+      "description": "Propose teaching the local harness validator to distinguish valid AHE intermediate states from invalid completed runs, so an evaluator-created `evaluation.md` is not rejected before debugger creates `analysis/overview.md`.",
+      "files": [
+        "scripts/check-harness.mjs",
+        "docs/ai/harness/checks.md"
+      ],
+      "failure_pattern": "`node scripts/check-harness.mjs` treats an AHE run with `evaluation.md` but no `analysis/overview.md` as failed even though that is a legitimate evaluator-to-debugger intermediate state.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/evaluation.md:46-96",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/evaluation.md:310-314",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/overview.md:23-24",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/overview.md:34-35",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/detail/ahe-run-lifecycle-validator.md:3-18",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/detail/ahe-run-lifecycle-validator.md:38-40"
+      ],
+      "root_cause": "`scripts/check-harness.mjs` models every directory under `docs/ai/evolution/runs/` as an all-or-nothing complete run and always requires `analysis/overview.md`, while the documented AHE workflow assigns `evaluation.md` to evaluator and `analysis/overview.md` to debugger in a later step.",
+      "predicted_fixes": [
+        "check-harness-allows-evaluator-only-ahe-run-state",
+        "check-harness-still-fails-manifest-without-debugger-analysis",
+        "ahe-step-1-and-step-2-validation-no-longer-blocked-by-premature-complete-run-shape"
+      ],
+      "risk_tasks": [
+        "validator-accepts-abandoned-incomplete-runs-too-broadly",
+        "manifest-shape-errors-hidden-by-lifecycle-exception",
+        "check-harness-lifecycle-rules-become-hard-to-understand"
+      ],
+      "constraint_level": "tool",
+      "why_this_component": "The failure is produced by the validator's structural rule, not by agent behavior. A local tool change plus check documentation is the smallest component that resolves the confirmed root cause without changing AHE agent responsibilities.",
+      "validation_plan": [
+        "Run `node scripts/check-harness.mjs` against a run directory containing only `evaluation.md` and confirm it passes or reports an explicit in-progress state rather than missing `analysis/overview.md`.",
+        "Run `node scripts/check-harness.mjs` against existing complete runs and confirm valid manifests remain parsed and required fields are still enforced.",
+        "Add or document a negative fixture/condition where a manifest exists without debugger analysis and confirm the check still fails."
+      ],
+      "rollback_plan": "If the validator becomes too permissive or hides invalid manifests, revert only the lifecycle changes in `scripts/check-harness.mjs` and the matching `docs/ai/harness/checks.md` note; because this repo is git-backed, a future applied commit can be rolled back by file/commit, but this manifest itself applies no implementation change."
+    },
+    {
+      "id": "chg-2-evolve-evaluation-only-contract",
+      "type": "improvement",
+      "status": "implemented_applied",
+      "description": "Propose clarifying `/evolve` so audit/evaluation-only and debugger-only passes have explicit stop conditions, and manifest creation is conditional on evidence, phase, and user approval rather than an unconditional expected output.",
+      "files": [
+        "commands/evolve.md",
+        "docs/ai/harness/commands.md"
+      ],
+      "failure_pattern": "`/evolve` gates evolver on sufficient evidence but also lists `Manifest creado o actualizado` as an expected result, creating pressure to produce a manifest during evaluation-only/no-apply audits.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/evaluation.md:123-155",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/evaluation.md:322-336",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/overview.md:25-26",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/overview.md:35-36",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/detail/evolve-evaluation-only-contract.md:3-18",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/detail/evolve-evaluation-only-contract.md:38-40"
+      ],
+      "root_cause": "`commands/evolve.md` describes the full happy-path AHE closure as the default required outcome but does not encode an explicit evaluation-only/debugger-only branch for user requests that prohibit manifest creation or implementation.",
+      "predicted_fixes": [
+        "evolve-audit-only-stops-after-evaluator-or-debugger-when-requested",
+        "evolve-manifest-created-only-when-evolver-has-sufficient-evidence-and-user-scope-allows-it",
+        "evolve-no-apply-requests-do-not-pressure-developer-implementation"
+      ],
+      "risk_tasks": [
+        "evolve-skips-required-manifest-after-actual-harness-change",
+        "evolve-command-wording-becomes-too-branchy-for-agents",
+        "ahe-full-flow-less-obvious-to-users"
+      ],
+      "constraint_level": "command",
+      "why_this_component": "The contradiction is in the slash command contract and its expected outputs. Changing the command wording and the versioned command map is more local than altering AHE agents, which already contain the evidence gate.",
+      "validation_plan": [
+        "Static check confirms `/evolve` documents full evolution and evaluation-only/debugger-only branches separately.",
+        "Run a transcript replay with `opencode run --command evolve` asking for no edits and no manifest; verify it stops with evaluator/debugger handoff and says manifest belongs to evolver only if scope/evidence permit.",
+        "Run or inspect a full-flow prompt where debugger confirms evidence and user allows manifest; verify manifest remains required before implementation."
+      ],
+      "rollback_plan": "If `/evolve` starts omitting manifests for real harness changes, revert the evaluation-only wording in `commands/evolve.md` and `docs/ai/harness/commands.md`, then pivot from command-level clarification to workflow-level phase barrier evidence. This proposal has not applied those edits."
+    },
+    {
+      "id": "chg-3-slash-command-contract-coverage",
+      "type": "improvement",
+      "status": "deferred_not_approved",
+      "description": "Propose updating the versioned command contract map to cover `/research`, `/spec`, and `/implement` or explicitly classify them as auxiliary commands with inherited barriers, with optional future drift detection.",
+      "files": [
+        "docs/ai/harness/commands.md",
+        "scripts/check-harness.mjs"
+      ],
+      "failure_pattern": "The declared source of truth for slash command contracts omits existing command files, including `/spec`, even though other harness docs route users toward `/spec` under uncertainty.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/evaluation.md:157-183",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/evaluation.md:324-326",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/overview.md:27-28",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/overview.md:36-37",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/detail/slash-command-contract-coverage.md:3-18",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/detail/slash-command-contract-coverage.md:38-40"
+      ],
+      "root_cause": "The harness introduced `docs/ai/harness/commands.md` as a persistent source of truth but did not add a coverage invariant tying it to all `commands/*.md` files or documenting which commands are auxiliary/subtask commands.",
+      "predicted_fixes": [
+        "commands-md-documents-or-classifies-all-visible-slash-commands",
+        "spec-command-cannot-be-read-as-bypassing-required-research-or-design",
+        "research-and-implement-commands-have-evaluable-routing-contracts"
+      ],
+      "risk_tasks": [
+        "auxiliary-command-policy-accidentally-promotes-subtasks-to-top-level-flows",
+        "spec-command-overconstrained-for-simple-direct-spec-requests",
+        "command-coverage-check-creates-maintenance-noise-for intentionally hidden commands"
+      ],
+      "constraint_level": "memory",
+      "why_this_component": "The confirmed failure is a coverage gap in the versioned contract map. Updating persistent harness documentation is the smallest sufficient fix; a validator extension is secondary and should only enforce the documented policy after it exists.",
+      "validation_plan": [
+        "Static inspection confirms `docs/ai/harness/commands.md` has explicit entries or auxiliary policy coverage for `/research`, `/spec`, and `/implement`.",
+        "Static inspection confirms `/spec` inherits blocker rules for missing research/design and `/implement` requires approved task/spec or clear direct scope.",
+        "If `check-harness` is extended, create/verify a coverage check that fails for undocumented non-allowlisted `commands/*.md` while allowing documented auxiliary commands."
+      ],
+      "rollback_plan": "If documenting auxiliary commands changes routing semantics or increases command overhead, revert the added command-map sections first and keep only a minimal auxiliary policy; if a coverage check is added and noisy, rollback that tool extension independently. This proposal does not apply either change."
+    },
+    {
+      "id": "chg-4-design-open-design-baseurl-contract",
+      "type": "improvement",
+      "status": "deferred_not_approved",
+      "description": "Propose correcting `/design` Open Design instructions so required `baseUrl` handling matches the currently exposed tool schemas, either by loading the `open-design` skill for the configured URL or by passing an explicitly approved base URL.",
+      "files": [
+        "commands/design.md",
+        "docs/ai/harness/commands.md"
+      ],
+      "failure_pattern": "`/design` instructs Open Design tools to be called without arguments and forbids `baseUrl`, while the available Open Design tool schemas require `baseUrl`.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/evaluation.md:185-213",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/evaluation.md:332-334",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/overview.md:29-30",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/overview.md:37-38",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/detail/open-design-tool-contract.md:3-17",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/detail/open-design-tool-contract.md:37-39"
+      ],
+      "root_cause": "`commands/design.md` embeds stale or environment-assumptive tool-call instructions that contradict the current Open Design tool interface exposed in this harness session; it forbids the parameter the tools require.",
+      "predicted_fixes": [
+        "design-command-no-longer-instructs-impossible-open-design-tool-calls",
+        "design-health-and-list-tools-have-clear-baseurl-source",
+        "feature-visual-flow-less-likely-to-block-before-specifier-due-to-tool-schema-mismatch"
+      ],
+      "risk_tasks": [
+        "design-command-hardcodes-environment-specific-baseurl",
+        "open-design-smoke-still-fails-if-skill-config-source-is-unclear",
+        "design-command-starts-running-artifact-creating-tools-during-audit"
+      ],
+      "constraint_level": "command",
+      "why_this_component": "The available tool schema appears internally consistent; the local contradiction is in the `/design` command text. Updating the command/tool contract is more local than changing tool implementation or global design workflow.",
+      "validation_plan": [
+        "Static inspection confirms `/design` no longer says to call Open Design health/list tools without required arguments or forbids `baseUrl` unconditionally.",
+        "Run a non-mutating Open Design smoke after approval: health plus list agents/design systems/skills with the configured base URL, without creating design artifacts.",
+        "Run or review a `/design` transcript to confirm the command loads/delegates to `open-design` skill and does not hardcode secrets or provider configuration."
+      ],
+      "rollback_plan": "If the corrected command still fails runtime smoke or leaks environment-specific assumptions, revert `commands/design.md` and `docs/ai/harness/commands.md` edits and pivot to the `open-design` skill/tool interface as the component under test. This proposal makes no implementation edit."
+    }
+  ],
+  "deferred_changes": [
+    "chg-3-slash-command-contract-coverage",
+    "chg-4-design-open-design-baseurl-contract"
+  ]
+}

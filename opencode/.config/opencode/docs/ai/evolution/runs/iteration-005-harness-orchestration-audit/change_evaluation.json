@@ -1,0 +1,14 @@
+{
+  "iteration": 5,
+  "status": "accepted",
+  "checks": [
+    {
+      "name": "static_contract",
+      "status": "passed",
+      "notes": "Auxiliary command coverage and Open Design baseUrl policy are documented."
+    }
+  ],
+  "residual_risks": [
+    "No live Open Design smoke is claimed by this iteration."
+  ]
+}

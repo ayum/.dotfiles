@@ -1,0 +1,30 @@
+{
+  "iteration": 5,
+  "changes": [
+    {
+      "id": "chg-1-command-contract-coverage",
+      "type": "improvement",
+      "description": "Classify visible auxiliary commands and align Open Design baseUrl instructions with the tool contract.",
+      "files": [
+        "docs/ai/harness/commands.md",
+        "commands/design.md",
+        "skills/open-design/SKILL.md"
+      ],
+      "failure_pattern": "Visible commands and Open Design tool requirements were not fully represented in the persistent command contract.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-005-harness-orchestration-audit/evaluation.md",
+        "docs/ai/evolution/runs/iteration-005-harness-orchestration-audit/analysis/overview.md"
+      ],
+      "predicted_fixes": [
+        "visible-auxiliary-commands-classified",
+        "open-design-baseurl-policy-explicit"
+      ],
+      "risk_tasks": [
+        "do-not-add-mandatory-sidecars",
+        "do-not-hardcode-local-open-design-url"
+      ],
+      "constraint_level": "command|skill|memory",
+      "why_this_component": "The failures were persistent contract drift, not runtime provider or MCP configuration."
+    }
+  ]
+}

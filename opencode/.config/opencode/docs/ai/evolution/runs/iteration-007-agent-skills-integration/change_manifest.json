@@ -1,0 +1,34 @@
+{
+  "iteration": 7,
+  "changes": [
+    {
+      "id": "chg-1-local-process-skills",
+      "type": "addition",
+      "description": "Add generic local process skills and wire them into relevant agents as optional checklists.",
+      "files": [
+        "skills/",
+        "references/",
+        "agents/developer.md",
+        "agents/researcher.md",
+        "agents/specifier.md",
+        "agents/reviewer.md",
+        "AGENTS.md"
+      ],
+      "failure_pattern": "Agents lacked reusable process checklists for recurring testing, review, API, security, performance, and documentation work.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-007-agent-skills-integration/evaluation.md",
+        "docs/ai/evolution/runs/iteration-007-agent-skills-integration/analysis/overview.md"
+      ],
+      "predicted_fixes": [
+        "agents-use-generic-local-skills-when-relevant",
+        "simple-tasks-do-not-gain-mandatory-phases"
+      ],
+      "risk_tasks": [
+        "avoid-local-provider-or-mcp-content",
+        "avoid-heavy-flow-for-small-changes"
+      ],
+      "constraint_level": "agent|skill",
+      "why_this_component": "The desired behavior is process guidance for existing agents, not model/provider configuration."
+    }
+  ]
+}

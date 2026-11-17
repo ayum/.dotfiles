@@ -1,0 +1,31 @@
+{
+  "iteration": 10,
+  "changes": [
+    {
+      "id": "chg-1-token-tree-usage-plugin",
+      "type": "addition",
+      "description": "Add a TUI plugin that displays lead and total token usage across child/subagent sessions.",
+      "files": [
+        "plugins/token-tree-usage.tsx",
+        "tui.json",
+        "package.json",
+        "package-lock.json"
+      ],
+      "failure_pattern": "The TUI showed lead/root session usage but not total usage including delegated subagent work.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-010-token-plugin-sidebar-content/evaluation.md",
+        "docs/ai/evolution/runs/iteration-010-token-plugin-sidebar-content/analysis/overview.md"
+      ],
+      "predicted_fixes": [
+        "lead-token-usage-visible",
+        "total-token-usage-includes-child-sessions"
+      ],
+      "risk_tasks": [
+        "do-not-use-absolute-local-plugin-paths",
+        "render-partial-state-when-child-reads-fail"
+      ],
+      "constraint_level": "tool",
+      "why_this_component": "The missing metric is a TUI display concern, so a plugin is narrower than changing OpenCode core."
+    }
+  ]
+}

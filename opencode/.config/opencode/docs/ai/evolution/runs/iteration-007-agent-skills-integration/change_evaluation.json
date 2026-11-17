@@ -1,0 +1,14 @@
+{
+  "iteration": 7,
+  "status": "accepted",
+  "checks": [
+    {
+      "name": "static_contract",
+      "status": "passed",
+      "notes": "Skills are generic, English, and wired through bounded agent allowlists."
+    }
+  ],
+  "residual_risks": [
+    "Runtime quality depends on whether the active OpenCode version supports local skill permissions as configured."
+  ]
+}

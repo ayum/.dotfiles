@@ -1,0 +1,66 @@
+{
+  "iteration": 3,
+  "evaluates_iteration": 3,
+  "evaluation_type": "same_iteration_static_and_replay",
+  "results": [
+    {
+      "change_id": "chg-1",
+      "decision": "keep",
+      "predicted_fixes_confirmed": [
+        "agents-find-contracts-without-large-agents-md",
+        "command-and-agent-contracts-have-versioned-source-of-truth"
+      ],
+      "predicted_fixes_not_confirmed": [],
+      "risk_tasks_regressed": [],
+      "risk_tasks_not_regressed": [
+        "agents-md-loses-critical-global-rule",
+        "harness-docs-duplicate-command-files"
+      ],
+      "unpredicted_regressions": [],
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-003-agent-readable-harness/evaluation.md"
+      ],
+      "notes": "Static validation confirms AGENTS.md remains an index with critical rules and docs/ai/harness contains versioned contracts."
+    },
+    {
+      "change_id": "chg-2",
+      "decision": "keep",
+      "predicted_fixes_confirmed": [
+        "frontmatter-drift-caught-locally",
+        "default-agent-regression-caught-locally",
+        "sidecars-in-feature-flow-caught-locally",
+        "manifest-shape-errors-caught-locally"
+      ],
+      "predicted_fixes_not_confirmed": [],
+      "risk_tasks_regressed": [],
+      "risk_tasks_not_regressed": [
+        "validator-blocks-valid-future-run-shape",
+        "validator-becomes-too-broad"
+      ],
+      "unpredicted_regressions": [],
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-003-agent-readable-harness/evaluation.md"
+      ],
+      "notes": "node scripts/check-harness.mjs passes after correcting ESM usage and limiting frontmatter parsing to top-level required keys."
+    },
+    {
+      "change_id": "chg-3",
+      "decision": "keep",
+      "predicted_fixes_confirmed": [
+        "benchmark-can-run-transcript-replay",
+        "manual-oracle-not-mistaken-for-routing-proof"
+      ],
+      "predicted_fixes_not_confirmed": [],
+      "risk_tasks_regressed": [],
+      "risk_tasks_not_regressed": [
+        "transcript-replay-overstated-as-full-runtime-proof",
+        "benchmark-docs-become-too-heavy"
+      ],
+      "unpredicted_regressions": [],
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-003-agent-readable-harness/evaluation.md"
+      ],
+      "notes": "Benchmark docs now include replay commands and evidence taxonomy; one real replay produced JSON events and confirmed developer handles small free-form requests."
+    }
+  ]
+}

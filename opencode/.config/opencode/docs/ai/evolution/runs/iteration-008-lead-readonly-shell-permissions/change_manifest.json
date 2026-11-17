@@ -1,0 +1,28 @@
+{
+  "iteration": 8,
+  "changes": [
+    {
+      "id": "chg-1-lead-readonly-shell-allowlist",
+      "type": "update",
+      "description": "Allow lead to run narrowly scoped read-only shell inspection commands without prompts.",
+      "files": [
+        "agents/lead.md"
+      ],
+      "failure_pattern": "Lead asks for approval on routine read-only inspection commands during routing.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-008-lead-readonly-shell-permissions/evaluation.md",
+        "docs/ai/evolution/runs/iteration-008-lead-readonly-shell-permissions/analysis/overview.md"
+      ],
+      "predicted_fixes": [
+        "lead-can-inspect-with-common-readonly-shell-commands",
+        "unknown-bash-still-asks"
+      ],
+      "risk_tasks": [
+        "do-not-allow-broad-shell-patterns",
+        "do-not-grant-editing-authority"
+      ],
+      "constraint_level": "tool",
+      "why_this_component": "OpenCode shell prompts are controlled by agent permission frontmatter."
+    }
+  ]
+}

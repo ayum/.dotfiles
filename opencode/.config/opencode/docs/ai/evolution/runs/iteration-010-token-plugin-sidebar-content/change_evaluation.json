@@ -1,0 +1,14 @@
+{
+  "iteration": 10,
+  "status": "accepted",
+  "checks": [
+    {
+      "name": "typecheck",
+      "status": "passed",
+      "notes": "The plugin is typechecked by the repository validation command."
+    }
+  ],
+  "residual_risks": [
+    "Exact runtime rendering depends on the installed OpenCode TUI plugin API."
+  ]
+}

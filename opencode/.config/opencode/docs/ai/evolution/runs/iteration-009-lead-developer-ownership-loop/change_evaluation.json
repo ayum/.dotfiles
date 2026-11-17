@@ -1,0 +1,14 @@
+{
+  "iteration": 9,
+  "status": "accepted",
+  "checks": [
+    {
+      "name": "static_contract",
+      "status": "passed",
+      "notes": "Lead edit permission is denied and ownership-loop wording is present."
+    }
+  ],
+  "residual_risks": [
+    "Fresh runtime behavior should still be observed in real OpenCode sessions."
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "iteration": 9,
+  "changes": [
+    {
+      "id": "chg-1-lead-no-implementation-edits",
+      "type": "update",
+      "description": "Prevent lead from editing implementation work and route follow-up corrections back to developer.",
+      "files": [
+        "agents/lead.md",
+        "docs/ai/harness/agents.md",
+        "scripts/check-harness.mjs",
+        "AGENTS.md"
+      ],
+      "failure_pattern": "After delegation, lead could make the next implementation adjustment itself instead of delegating back to developer.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-009-lead-developer-ownership-loop/evaluation.md",
+        "docs/ai/evolution/runs/iteration-009-lead-developer-ownership-loop/analysis/overview.md"
+      ],
+      "predicted_fixes": [
+        "lead-edit-permission-denied",
+        "follow-up-implementation-goes-to-developer"
+      ],
+      "risk_tasks": [
+        "do-not-block-lead-from-inspection",
+        "preserve-routing-for-ambiguity"
+      ],
+      "constraint_level": "agent",
+      "why_this_component": "The behavior is controlled by lead's agent contract and permissions."
+    }
+  ]
+}

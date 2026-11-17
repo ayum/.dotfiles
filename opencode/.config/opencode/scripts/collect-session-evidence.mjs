@@ -1,0 +1,830 @@
+#!/usr/bin/env node
+
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawn, spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
+import { SESSION_TABLES_SQL, pickSessionSchemas, sessionQueries } from "./session-sources.mjs";
+
+function fail(message) {
+  console.error(message);
+  process.exit(1);
+}
+
+/**
+ * Stream sqlite3 JSON output via spawn, collecting stdout chunks incrementally.
+ * This avoids the 208MB+ buffer accumulation from spawnSync.
+ */
+function streamSqliteJson(dbPath, sql, timeoutMs = 0) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("sqlite3", ["-json", dbPath, sql], { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    let timer = null;
+
+    if (timeoutMs > 0) {
+      timer = setTimeout(() => {
+        child.kill("SIGTERM");
+        reject(new Error(`sqlite3 timeout for ${dbPath} after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+
+    child.on("error", (error) => {
+      if (timer) clearTimeout(timer);
+      reject(new Error(`sqlite3 spawn error for ${dbPath}: ${error.message}`));
+    });
+
+    child.on("close", (code) => {
+      if (timer) clearTimeout(timer);
+      if (code !== 0) {
+        const details = stderr.trim() || stdout.trim() || `sqlite3 failed for ${dbPath}`;
+        reject(new Error(`sqlite3 runtime error for ${dbPath}: ${details}`));
+        return;
+      }
+      try {
+        resolve(JSON.parse(stdout || "[]"));
+      } catch (error) {
+        reject(new Error(`sqlite3 JSON parse error for ${dbPath}: ${error.message}`));
+      }
+    });
+  });
+}
+
+function parseArgs(argv) {
+  const args = { sources: [], fullRescan: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const token = argv[i];
+    if (token === "--iteration") {
+      args.iteration = argv[++i];
+    } else if (token === "--output-dir") {
+      args.outputDir = argv[++i];
+    } else if (token === "--source") {
+      args.sources.push(argv[++i]);
+    } else if (token === "--full-rescan") {
+      args.fullRescan = true;
+    } else if (token === "--run") {
+      args.run = argv[++i];
+      if (!args.run) fail("--run requires a run-summary.json path");
+    } else {
+      fail(`Unknown argument: ${token}`);
+    }
+  }
+  return args;
+}
+
+// A run summary lists the sessions the mission-runtime plugin recorded while
+// the run was open; trees containing any of them belong to that run.
+function loadRunSessions(summaryPath) {
+  const summary = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
+  if (summary?.schema !== "oak.run.summary/1" || typeof summary.run?.run_id !== "string") {
+    fail(`--run must reference an oak.run.summary/1 file: ${summaryPath}`);
+  }
+  const sessionIds = new Set(
+    (Array.isArray(summary.events) ? summary.events : [])
+      .filter((event) => event?.type === "agent_session" && typeof event.session_id === "string")
+      .map((event) => event.session_id),
+  );
+  return { runId: summary.run.run_id, sessionIds };
+}
+
+function defaultSources() {
+  const home = os.homedir();
+  const sources = [path.join(home, ".local", "share", "opencode", "opencode.db")];
+  const envRaw = process.env.RAW_SESSIONS_DIR;
+  const localRaw = "/Volumes/ingestion/raw-sessions/opencode";
+  const fallbackRaw = "/raw-sessions";
+  if (envRaw && fs.existsSync(envRaw)) {
+    sources.push(envRaw);
+  } else if (fs.existsSync(localRaw)) {
+    sources.push(localRaw);
+  } else if (fs.existsSync(fallbackRaw)) {
+    sources.push(fallbackRaw);
+  }
+  return sources;
+}
+
+function resolveOutputDir(args) {
+  if (args.outputDir) return path.resolve(args.outputDir);
+  if (args.iteration) {
+    return path.resolve("docs/ai/evolution/runs", args.iteration, "raw");
+  }
+  fail("Pass --output-dir or --iteration.");
+}
+
+function detectSource(sourcePath) {
+  const stat = fs.statSync(sourcePath);
+  if (stat.isFile() && path.basename(sourcePath) === "opencode.db") {
+    return "opencode-sqlite";
+  }
+  if (stat.isDirectory()) {
+    return "opencode-raw-json";
+  }
+  throw new Error(`Unsupported source: ${sourcePath}`);
+}
+
+function parseJson(text) {
+  try {
+    return { ok: true, value: JSON.parse(text) };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
+function firstTextPart(parts) {
+  for (const part of parts) {
+    const data = parseJson(part.data);
+    if (data.ok && data.value?.type === "text" && typeof data.value.text === "string" && data.value.text.trim()) {
+      return data.value.text.trim();
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Phase-0 telemetry (iteration-025).
+// These signals live ONLY in this collector's output; they are never injected
+// into agent handoff prompts. All fields are additive and optional so existing
+// consumers of execution-trees.jsonl keep working unchanged.
+//
+// Semantics:
+// - request_turn_id: `<root_session_id>:t<n>` numbered by root user-message
+//   time; each spawn maps to the latest root turn active at its spawn moment,
+//   which makes multi-turn sessions classifiable per request instead of per
+//   session head.
+// - t_handoff_start/t_handoff_end: paired spawn boundaries. For spawn i,
+//   t_handoff_start is the completion time of the previous hop (root start for
+//   the first hop) and t_handoff_end is the new spawn's creation time, so
+//   gap_ms is the observable consolidation gap before each delegation.
+//   Overlapping hops produce negative gaps (reported honestly, not clamped).
+// - diff_size: measured at collection time against the tree root directory
+//   (`git diff --numstat`), never at gate decision time; consumers must treat
+//   it as a post-hoc approximation (captured_at: "collection").
+// - review_skipped_reason: enum-valid marker extracted from session summaries.
+// ---------------------------------------------------------------------------
+
+const REVIEW_SKIPPED_REASONS = new Set([
+  "small_gate_pass",
+  "protected_surface",
+  "destructive_diff",
+  "tests_required",
+  "scope_not_small",
+  "human_decision",
+]);
+
+const REVIEW_SKIPPED_REASON_PATTERN = /review_skipped_reason:\s*([a-z_]+)/;
+
+function buildRequestTurns(turnTimes, rootSessionId) {
+  if (!Array.isArray(turnTimes) || turnTimes.length === 0) return [];
+  return [...turnTimes]
+    .filter((time) => typeof time === "number")
+    .sort((left, right) => left - right)
+    .map((tStart, index) => ({ turn_id: `${rootSessionId}:t${index + 1}`, t_start: tStart }));
+}
+
+function resolveRequestTurnId(requestTurns, spawnTime) {
+  if (typeof spawnTime !== "number" || requestTurns.length === 0) return null;
+  let matched = null;
+  for (const turn of requestTurns) {
+    if (turn.t_start <= spawnTime) matched = turn.turn_id;
+  }
+  return matched;
+}
+
+function buildHandoffs(childSessions, rootSession, requestTurns) {
+  const rootStart = typeof rootSession?.time_created === "number" ? rootSession.time_created : null;
+  let predecessorEnd = rootStart;
+  return childSessions.map((child, index) => {
+    const tSpawn = typeof child.time_created === "number" ? child.time_created : null;
+    const tComplete = typeof child.time_updated === "number" ? child.time_updated : null;
+    const gapMs = predecessorEnd !== null && tSpawn !== null ? tSpawn - predecessorEnd : null;
+    const handoff = {
+      sequence: index + 1,
+      agent: child.agent || null,
+      session_id: child.session_id,
+      request_turn_id: resolveRequestTurnId(requestTurns, tSpawn),
+      t_handoff_start: predecessorEnd,
+      t_handoff_end: tSpawn,
+      gap_ms: gapMs,
+      t_spawn: tSpawn,
+      t_complete: tComplete,
+    };
+    if (tComplete !== null) predecessorEnd = tComplete;
+    return handoff;
+  });
+}
+
+function deriveReviewSkippedReason(sortedRows, rootSession) {
+  const orderedRows = [
+    ...(rootSession ? [rootSession] : []),
+    ...sortedRows.filter((row) => row.session_id !== rootSession?.session_id),
+  ];
+  for (const row of orderedRows) {
+    const summary = row.assistant_summary;
+    if (typeof summary !== "string") continue;
+    const match = summary.match(REVIEW_SKIPPED_REASON_PATTERN);
+    if (match && REVIEW_SKIPPED_REASONS.has(match[1])) return match[1];
+  }
+  return null;
+}
+
+function unavailableDiffSize() {
+  return {
+    available: false,
+    files_changed: null,
+    insertions: null,
+    deletions: null,
+    captured_at: "collection",
+  };
+}
+
+function measureDiffSize(directory) {
+  const fallback = unavailableDiffSize();
+  if (typeof directory !== "string" || directory.length === 0) return fallback;
+  let stat;
+  try {
+    stat = fs.statSync(directory);
+  } catch {
+    return fallback;
+  }
+  if (!stat.isDirectory()) return fallback;
+  try {
+    const probe = spawnSync(
+      "git",
+      ["-C", directory, "rev-parse", "--is-inside-work-tree"],
+      { encoding: "utf8", timeout: 10_000 },
+    );
+    if (probe.status !== 0 || probe.stdout.trim() !== "true") return fallback;
+    const numstat = spawnSync(
+      "git",
+      ["-C", directory, "diff", "--numstat"],
+      { encoding: "utf8", timeout: 15_000, maxBuffer: 32 * 1024 * 1024 },
+    );
+    if (numstat.status !== 0) return fallback;
+    let filesChanged = 0;
+    let insertions = 0;
+    let deletions = 0;
+    for (const line of numstat.stdout.split("\n")) {
+      if (!line.trim()) continue;
+      const [added, removed] = line.split("\t");
+      filesChanged += 1;
+      if (/^\d+$/.test(added)) insertions += Number(added);
+      if (/^\d+$/.test(removed)) deletions += Number(removed);
+    }
+    // Untracked files are part of the visible work-tree delta even though
+    // `git diff --numstat` omits them; count them so small-gate metrics see
+    // brand-new files too.
+    const untracked = spawnSync(
+      "git",
+      ["-C", directory, "ls-files", "--others", "--exclude-standard"],
+      { encoding: "utf8", timeout: 15_000 },
+    );
+    if (untracked.status === 0) {
+      filesChanged += untracked.stdout.split("\n").filter((entry) => entry.trim()).length;
+    }
+    return { ...fallback, available: true, files_changed: filesChanged, insertions, deletions };
+  } catch {
+    return fallback;
+  }
+}
+
+
+function loadPreviousCursor(iteration, outputDir) {
+  if (!iteration) return null;
+  const runsDir = path.dirname(path.dirname(outputDir));
+  if (!fs.existsSync(runsDir)) return null;
+  const priorIterations = fs
+    .readdirSync(runsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith("iteration-") && entry.name < iteration)
+    .map((entry) => entry.name)
+    .sort()
+    .reverse();
+
+  for (const candidate of priorIterations) {
+    const cursorPath = path.join(runsDir, candidate, "raw", "cursor.json");
+    if (!fs.existsSync(cursorPath)) continue;
+    const parsed = parseJson(fs.readFileSync(cursorPath, "utf8"));
+    if (!parsed.ok) continue;
+    if (
+      parsed.value?.cursor_mode === "execution_tree_incremental" &&
+      typeof parsed.value?.cursor_end_time_updated_max === "number" &&
+      typeof parsed.value?.cursor_end_root_session_id === "string"
+    ) {
+      return parsed.value;
+    }
+  }
+
+  return null;
+}
+
+async function summarizeSqlite(dbPath, previousCursor, fullRescan) {
+  const cutoff = !fullRescan && previousCursor ? previousCursor.cursor_end_time_updated_max : null;
+  const cutoffFilter = cutoff ? `AND time_created > ${Number(cutoff)}` : "";
+
+  const schemas = pickSessionSchemas(await streamSqliteJson(dbPath, SESSION_TABLES_SQL, 300_000)).map((schema) => ({
+    schema,
+    queries: sessionQueries(schema, { cutoffFilter }),
+  }));
+
+  // Session query: always full (lightweight, needed for parent resolution)
+  // A session can be in both schemas: OpenCode 2 imports OpenCode 1 sessions,
+  // and OpenCode 1 can keep using one after switching back. The most recently
+  // updated copy owns the session; on a tie the earlier schema (OpenCode 2) wins.
+  const owners = new Map();
+  for (const { schema, queries } of schemas) {
+    for (const row of await streamSqliteJson(dbPath, queries.sessions, 300_000)) {
+      const owner = owners.get(row.id);
+      if (!owner || (row.time_updated ?? 0) > (owner.row.time_updated ?? 0)) owners.set(row.id, { schema, row });
+    }
+  }
+  // Same order as the session SQL: time_updated desc, id desc (binary).
+  const sessions = [...owners.values()]
+    .map((owner) => owner.row)
+    .sort((a, b) => (b.time_updated ?? 0) - (a.time_updated ?? 0) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+
+  // Rows are appended one by one: spreading hundreds of thousands of rows into
+  // push() exceeds the engine's argument limit.
+  const messages = [];
+  const parts = [];
+  for (const { schema, queries } of schemas) {
+    const owned = (row) => owners.get(row.session_id)?.schema === schema;
+
+    // Message query: extract only role from JSON data (reduces output from ~31MB to ~200KB)
+    // Apply time cutoff when not in full-rescan mode
+    for (const row of await streamSqliteJson(dbPath, queries.messages, 300_000)) if (owned(row)) messages.push(row);
+
+    // Part query: text parts only, with the time cutoff when not in full-rescan mode
+    for (const row of await streamSqliteJson(dbPath, queries.parts, 300_000)) if (owned(row)) parts.push(row);
+  }
+
+  const messagesBySession = new Map();
+  for (const message of messages) {
+    const list = messagesBySession.get(message.session_id) || [];
+    list.push(message);
+    messagesBySession.set(message.session_id, list);
+  }
+
+  const partsByMessage = new Map();
+  for (const part of parts) {
+    const list = partsByMessage.get(part.message_id) || [];
+    list.push(part);
+    partsByMessage.set(part.message_id, list);
+  }
+
+  const userTurnTimesBySession = new Map();
+
+  const normalized = [];
+  let skipped = 0;
+  const skipReasons = {};
+
+  for (const session of sessions) {
+    if (!session.id) {
+      skipped += 1;
+      skipReasons.missing_session_id = (skipReasons.missing_session_id || 0) + 1;
+      continue;
+    }
+    let model = null;
+    if (typeof session.model === "string" && session.model) {
+      const parsed = parseJson(session.model);
+      model = parsed.ok ? parsed.value : { raw: session.model };
+    }
+
+    const sessionMessages = messagesBySession.get(session.id) || [];
+    const userMessages = [];
+    const assistantMessages = [];
+    for (const message of sessionMessages) {
+      // The message query extracts the role in SQL.
+      const role = message.role;
+      if (role === "user") userMessages.push(message);
+      if (role === "assistant") assistantMessages.push(message);
+    }
+
+    userTurnTimesBySession.set(
+      session.id,
+      userMessages
+        .map((message) => message.time_created)
+        .filter((time) => typeof time === "number"),
+    );
+
+    const firstUser = userMessages[0];
+    const lastAssistant = assistantMessages.at(-1);
+    const userPrompt = firstUser ? firstTextPart(partsByMessage.get(firstUser.id) || []) : null;
+    const assistantSummary = lastAssistant ? firstTextPart(partsByMessage.get(lastAssistant.id) || []) : null;
+
+    // M1: in incremental mode (cutoff active), a session created at or before the cursor has its
+    // messages/parts dropped by the SQL `time_created > cutoff` filter. The tree can still be
+    // re-activated (tree_time_updated_max > cursor) via a child updated after the cursor, so the
+    // session loads with empty messages. Mark this explicitly so consumers (debugger, humans) do
+    // not trust incomplete content: message_count becomes null (not 0) and content_filtered: true.
+    // We use session.time_created <= cutoff as the signal because the filter is on message/part
+    // time_created, and messages are created during the session — a session born before the cutoff
+    // cannot have reliable content in incremental mode.
+    const contentFiltered =
+      cutoff !== null && typeof session.time_created === "number" && session.time_created <= cutoff;
+
+    normalized.push({
+      source_label: "local-opencode-db",
+      source_format: "opencode-sqlite",
+      session_id: session.id,
+      parent_session_id: session.parent_id || null,
+      title: session.title || null,
+      agent: session.agent || null,
+      model,
+      directory: session.directory || null,
+      path: session.path || "",
+      version: session.version || null,
+      time_created: session.time_created ?? null,
+      time_updated: session.time_updated ?? null,
+      tokens: {
+        input: session.tokens_input ?? 0,
+        output: session.tokens_output ?? 0,
+        reasoning: session.tokens_reasoning ?? 0,
+        cache: {
+          read: session.tokens_cache_read ?? 0,
+          write: session.tokens_cache_write ?? 0,
+        },
+      },
+      cost: session.cost ?? 0,
+      user_prompt: userPrompt,
+      assistant_summary: assistantSummary,
+      message_count: contentFiltered ? null : sessionMessages.length,
+      content_filtered: contentFiltered,
+    });
+  }
+
+  return {
+    source: {
+      label: "local-opencode-db",
+      path: dbPath,
+      format: "opencode-sqlite",
+      discovered: sessions.length,
+      accepted: normalized.length,
+      skipped,
+      skip_reasons: skipReasons,
+    },
+    normalized,
+    userTurnTimesBySession,
+  };
+}
+
+function summarizeRawDir(dirPath) {
+  const files = fs
+    .readdirSync(dirPath)
+    .filter((file) => file.startsWith("ses_") && file.endsWith(".json"))
+    .sort();
+
+  const normalized = [];
+  const skipReasons = {};
+  let skipped = 0;
+
+  for (const file of files) {
+    const fullPath = path.join(dirPath, file);
+    const text = fs.readFileSync(fullPath, "utf8");
+    const parsed = parseJson(text);
+    if (!parsed.ok) {
+      skipped += 1;
+      skipReasons.invalid_json = (skipReasons.invalid_json || 0) + 1;
+      continue;
+    }
+    if (Array.isArray(parsed.value) && parsed.value.length === 0) {
+      skipped += 1;
+      skipReasons.empty_array = (skipReasons.empty_array || 0) + 1;
+      continue;
+    }
+
+    const info = !Array.isArray(parsed.value) ? parsed.value?.info : null;
+    const sessionId = info?.id || path.basename(file, ".json");
+    if (!sessionId) {
+      skipped += 1;
+      skipReasons.missing_session_id = (skipReasons.missing_session_id || 0) + 1;
+      continue;
+    }
+
+    normalized.push({
+      source_label: "external-opencode-raw",
+      source_format: "opencode-raw-json",
+      session_id: sessionId,
+      parent_session_id: null,
+      title: info?.title || null,
+      agent: info?.agent || null,
+      model: info?.model || null,
+      directory: info?.directory || null,
+      path: info?.path || "",
+      version: info?.version || null,
+      time_created: null,
+      time_updated: null,
+      tokens: info?.tokens || null,
+      cost: info?.cost ?? 0,
+      user_prompt: null,
+      assistant_summary: null,
+      message_count: null,
+      raw_path: fullPath,
+      raw_shape: Array.isArray(parsed.value) ? "array" : "object",
+    });
+  }
+
+  return {
+    source: {
+      label: "external-opencode-raw",
+      path: dirPath,
+      format: "opencode-raw-json",
+      discovered: files.length,
+      accepted: normalized.length,
+      skipped,
+      skip_reasons: skipReasons,
+    },
+    normalized,
+  };
+}
+
+function sortSessions(rows) {
+  return [...rows].sort((a, b) => {
+    const timeDelta = (a.time_created ?? Number.MAX_SAFE_INTEGER) - (b.time_created ?? Number.MAX_SAFE_INTEGER);
+    if (timeDelta !== 0) return timeDelta;
+    return a.session_id.localeCompare(b.session_id);
+  });
+}
+
+function resolveRootId(row, sessionMap) {
+  if (row.source_format !== "opencode-sqlite") return row.session_id;
+  if (!row.parent_session_id) return row.session_id;
+
+  const seen = new Set([row.session_id]);
+  let current = row;
+  while (current.parent_session_id) {
+    const parent = sessionMap.get(current.parent_session_id);
+    if (!parent || parent.source_format !== "opencode-sqlite") {
+      return row.session_id;
+    }
+    if (seen.has(parent.session_id)) {
+      return row.session_id;
+    }
+    seen.add(parent.session_id);
+    current = parent;
+  }
+  return current.session_id;
+}
+
+function treeRepresentativeSummary(sessions) {
+  const withSummary = sessions.filter((row) => row.assistant_summary);
+  if (withSummary.length === 0) return null;
+  return [...withSummary]
+    .sort((a, b) => (a.time_updated ?? 0) - (b.time_updated ?? 0) || a.session_id.localeCompare(b.session_id))
+    .at(-1).assistant_summary;
+}
+
+function buildExecutionTrees(sqliteRows, rawRows, previousCursor, fullRescan, userTurnTimesBySession = null) {
+  const sqliteMap = new Map(sqliteRows.map((row) => [row.session_id, row]));
+  const rawBySessionId = new Map(rawRows.map((row) => [row.session_id, row]));
+  const grouped = new Map();
+
+  for (const row of sqliteRows) {
+    const rootId = resolveRootId(row, sqliteMap);
+    const list = grouped.get(rootId) || [];
+    list.push(row);
+    grouped.set(rootId, list);
+  }
+
+  const trees = [];
+  const skipReasons = {};
+  let skipped = 0;
+  let unmatchedRaw = 0;
+
+  for (const [rootId, rows] of grouped.entries()) {
+    const sortedRows = sortSessions(rows);
+    const rootSession = sqliteMap.get(rootId) || sortedRows[0];
+    const childSessions = sortedRows.filter((row) => row.session_id !== rootSession.session_id);
+    const participatingAgents = [...new Set(sortedRows.map((row) => row.agent).filter(Boolean))].sort();
+    const timeCreatedValues = sortedRows.map((row) => row.time_created).filter((value) => typeof value === "number");
+    const timeUpdatedValues = sortedRows.map((row) => row.time_updated).filter((value) => typeof value === "number");
+    const matchedRawIds = sortedRows.filter((row) => rawBySessionId.has(row.session_id)).map((row) => row.session_id);
+
+    const aggregateTokens = sortedRows.reduce(
+      (acc, row) => {
+        acc.input += row.tokens?.input ?? 0;
+        acc.output += row.tokens?.output ?? 0;
+        acc.reasoning += row.tokens?.reasoning ?? 0;
+        acc.cache.read += row.tokens?.cache?.read ?? 0;
+        acc.cache.write += row.tokens?.cache?.write ?? 0;
+        return acc;
+      },
+      { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+    );
+
+    const tree = {
+      execution_tree_id: rootSession.session_id,
+      root_session_id: rootSession.session_id,
+      root_session: rootSession,
+      child_sessions: childSessions,
+      root_agent: rootSession.agent || null,
+      root_title: rootSession.title || null,
+      root_directory: rootSession.directory || null,
+      tree_time_created_min: timeCreatedValues.length ? Math.min(...timeCreatedValues) : null,
+      tree_time_updated_max: timeUpdatedValues.length ? Math.max(...timeUpdatedValues) : null,
+      participating_agents: participatingAgents,
+      session_count: sortedRows.length,
+      aggregate_tokens: aggregateTokens,
+      aggregate_cost: sortedRows.reduce((sum, row) => sum + (row.cost ?? 0), 0),
+      representative_user_prompt:
+        rootSession.user_prompt || sortedRows.find((row) => typeof row.user_prompt === "string")?.user_prompt || null,
+      representative_assistant_summary: treeRepresentativeSummary(sortedRows),
+      // M1: a tree is content_filtered when any of its sessions had content dropped by the
+      // incremental cutoff. Consumers must not trust representative prompts/summaries as complete.
+      content_filtered: sortedRows.some((row) => row.content_filtered === true),
+      session_ids: sortedRows.map((row) => row.session_id),
+      supplemental_raw_session_ids: matchedRawIds,
+      source_formats: [...new Set(["opencode-sqlite", ...matchedRawIds.map(() => "opencode-raw-json")])],
+    };
+
+    const requestTurns = buildRequestTurns(
+      userTurnTimesBySession?.get(rootSession.session_id),
+      rootSession.session_id,
+    );
+    tree.telemetry = {
+      method_version: 1,
+      request_turns: requestTurns,
+      handoffs: buildHandoffs(childSessions, rootSession, requestTurns),
+      review_skipped_reason: deriveReviewSkippedReason(sortedRows, rootSession),
+      diff_size: unavailableDiffSize(),
+    };
+
+    if (
+      !fullRescan &&
+      previousCursor &&
+      typeof tree.tree_time_updated_max === "number" &&
+      (tree.tree_time_updated_max < previousCursor.cursor_end_time_updated_max ||
+        (tree.tree_time_updated_max === previousCursor.cursor_end_time_updated_max &&
+          tree.root_session_id.localeCompare(previousCursor.cursor_end_root_session_id) <= 0))
+    ) {
+      skipped += 1;
+      skipReasons.before_cursor = (skipReasons.before_cursor || 0) + 1;
+      continue;
+    }
+
+    trees.push(tree);
+  }
+
+  for (const rawRow of rawRows) {
+    if (!sqliteMap.has(rawRow.session_id)) unmatchedRaw += 1;
+  }
+
+  trees.sort((a, b) => {
+    const timeDelta = (a.tree_time_updated_max ?? 0) - (b.tree_time_updated_max ?? 0);
+    if (timeDelta !== 0) return timeDelta;
+    return a.root_session_id.localeCompare(b.root_session_id);
+  });
+
+  return {
+    trees,
+    treeSummary: {
+      trees_discovered: grouped.size,
+      trees_accepted: trees.length,
+      trees_skipped: skipped,
+      tree_skip_reasons: skipReasons,
+    },
+    supplementalRawSummary: {
+      discovered: rawRows.length,
+      accepted: rawRows.length,
+      matched: rawRows.length - unmatchedRaw,
+      unmatched: unmatchedRaw,
+    },
+  };
+}
+
+export async function collectExecutionTreeByRoot(dbPath, rootSessionId) {
+  if (typeof rootSessionId !== "string" || !rootSessionId) {
+    throw new Error("rootSessionId must be a non-empty string");
+  }
+  if (!fs.existsSync(dbPath) || !fs.statSync(dbPath).isFile()) {
+    throw new Error("dbPath must reference an existing regular file");
+  }
+  const result = await summarizeSqlite(dbPath, null, true);
+  const rootSession = result.normalized.find((row) => row.session_id === rootSessionId);
+  if (!rootSession || rootSession.parent_session_id !== null) return null;
+  const built = buildExecutionTrees(result.normalized, [], null, true, result.userTurnTimesBySession);
+  const tree = built.trees.find((candidate) => candidate.root_session_id === rootSessionId) || null;
+  if (tree?.telemetry) {
+    tree.telemetry.diff_size = measureDiffSize(tree.root_directory);
+  }
+  return tree;
+}
+
+function makeCursor(previousCursor, treeSummary, trees, supplementalRawSummary, fullRescan) {
+  const lastTree = trees.at(-1) || null;
+  return {
+    cursor_mode: "execution_tree_incremental",
+    cursor_start:
+      !fullRescan && previousCursor
+        ? {
+            time_updated_max: previousCursor.cursor_end_time_updated_max,
+            root_session_id: previousCursor.cursor_end_root_session_id,
+          }
+        : null,
+    cursor_end:
+      lastTree && typeof lastTree.tree_time_updated_max === "number"
+        ? {
+            time_updated_max: lastTree.tree_time_updated_max,
+            root_session_id: lastTree.root_session_id,
+          }
+        : !fullRescan && previousCursor
+          ? {
+              time_updated_max: previousCursor.cursor_end_time_updated_max,
+              root_session_id: previousCursor.cursor_end_root_session_id,
+            }
+          : null,
+    cursor_end_time_updated_max:
+      lastTree && typeof lastTree.tree_time_updated_max === "number"
+        ? lastTree.tree_time_updated_max
+        : previousCursor?.cursor_end_time_updated_max ?? null,
+    cursor_end_root_session_id: lastTree?.root_session_id || previousCursor?.cursor_end_root_session_id || null,
+    trees_discovered: treeSummary.trees_discovered,
+    trees_accepted: treeSummary.trees_accepted,
+    trees_skipped: treeSummary.trees_skipped,
+    tree_skip_reasons: treeSummary.tree_skip_reasons,
+    supplemental_raw_summary: supplementalRawSummary,
+  };
+}
+
+export async function main(argv = process.argv.slice(2)) {
+  const args = parseArgs(argv);
+  const outputDir = resolveOutputDir(args);
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  const sourcePaths = args.sources.length > 0 ? args.sources.map((item) => path.resolve(item)) : defaultSources();
+  const summaries = [];
+  let sqliteRows = [];
+  let rawRows = [];
+  let userTurnTimesBySession = null;
+
+  const previousCursor = args.fullRescan ? null : loadPreviousCursor(args.iteration, outputDir);
+
+  for (const sourcePath of sourcePaths) {
+    if (!fs.existsSync(sourcePath)) continue;
+    const kind = detectSource(sourcePath);
+    let result;
+    if (kind === "opencode-sqlite") {
+      result = await summarizeSqlite(sourcePath, previousCursor, args.fullRescan);
+    } else {
+      result = { source: null, normalized: [] };
+      const rawResult = summarizeRawDir(sourcePath);
+      result.source = rawResult.source;
+      result.normalized = rawResult.normalized;
+      result.userTurnTimesBySession = new Map();
+    }
+    summaries.push(result.source);
+    if (kind === "opencode-sqlite") {
+      sqliteRows = sqliteRows.concat(result.normalized);
+      userTurnTimesBySession = new Map([
+        ...(userTurnTimesBySession || []),
+        ...result.userTurnTimesBySession,
+      ]);
+    } else {
+      rawRows = rawRows.concat(result.normalized);
+    }
+  }
+
+  const built = buildExecutionTrees(sqliteRows, rawRows, previousCursor, args.fullRescan, userTurnTimesBySession);
+  const runSessions = args.run ? loadRunSessions(path.resolve(args.run)) : null;
+  for (const tree of built.trees) {
+    tree.telemetry.diff_size = measureDiffSize(tree.root_directory);
+    if (runSessions) {
+      tree.run_id = tree.session_ids.some((id) => runSessions.sessionIds.has(id)) ? runSessions.runId : null;
+    }
+  }
+  const acceptedSessionIds = new Set(built.trees.flatMap((tree) => tree.session_ids));
+  const filteredSessionRows = sortSessions(sqliteRows.filter((row) => acceptedSessionIds.has(row.session_id)));
+  const cursor = makeCursor(previousCursor, built.treeSummary, built.trees, built.supplementalRawSummary, args.fullRescan);
+
+  fs.writeFileSync(
+    path.join(outputDir, "session-sources.summary.json"),
+    JSON.stringify({ sources: summaries }, null, 2),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(outputDir, "normalized-sessions.jsonl"),
+    `${filteredSessionRows.map((row) => JSON.stringify(row)).join("\n")}${filteredSessionRows.length ? "\n" : ""}`,
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(outputDir, "execution-trees.jsonl"),
+    `${built.trees.map((tree) => JSON.stringify(tree)).join("\n")}${built.trees.length ? "\n" : ""}`,
+    "utf8",
+  );
+  fs.writeFileSync(path.join(outputDir, "cursor.json"), JSON.stringify(cursor, null, 2), "utf8");
+  console.log(`Collected ${built.trees.length} execution trees from ${summaries.length} sources.`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
+}

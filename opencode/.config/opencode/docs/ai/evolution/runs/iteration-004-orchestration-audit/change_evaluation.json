@@ -1,0 +1,252 @@
+{
+  "iteration": 4,
+  "evaluates_iteration": 4,
+  "evaluates_manifest": "docs/ai/evolution/runs/iteration-004-orchestration-audit/change_manifest.json",
+  "evaluation_type": "post_apply_attribution",
+  "applied_scope": [
+    "chg-1-ahe-run-lifecycle-validator",
+    "chg-2-evolve-evaluation-only-contract"
+  ],
+  "deferred_scope": [
+    "chg-3-slash-command-contract-coverage",
+    "chg-4-design-open-design-baseurl-contract"
+  ],
+  "overall_decision": "keep",
+  "overall_notes": "Developer applied only the approved scope, chg-1 and chg-2. Post-apply evaluation confirms the harness validator behavior operationally for chg-1 and confirms the /evolve contract statically for chg-2. No rollback+pivot signal is present: checks pass, negative control still fails, manifest statuses match approved/deferred scope, and diff/sensitive scan stayed inside allowed files. Residual transcript replay for chg-2 is future evidence, not a blocker for keeping the command-contract clarification because no regression was observed and the applied change is documentation/contract-level.",
+  "artifact_note": "Creating or maintaining this change_evaluation.json completes the AHE attribution artifact required by the harness. It is not, by itself, proof that applied changes work; proof is linked through post_apply_evaluation.md and validation commands below.",
+  "evidence_artifacts": [
+    "docs/ai/evolution/runs/iteration-004-orchestration-audit/change_manifest.json",
+    "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md",
+    "docs/ai/evolution/runs/iteration-004-orchestration-audit/pre_apply_evaluation.md",
+    "docs/ai/evolution/runs/iteration-004-orchestration-audit/analysis/pre_apply_approval.md"
+  ],
+  "validation_outputs_referenced": [
+    {
+      "command": "node scripts/check-harness.mjs",
+      "result": "pass",
+      "output": "Harness check passed.",
+      "evidence": "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:18-24"
+    },
+    {
+      "command": "node scripts/check-harness.mjs against temporary evaluator-only fixture",
+      "result": "pass",
+      "output": "Harness check passed.",
+      "evidence": "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:20-22"
+    },
+    {
+      "command": "node scripts/check-harness.mjs against temporary manifest-without-analysis control",
+      "result": "expected_fail",
+      "output": "missing analysis/overview.md; manifest exists without change_evaluation.json; EXIT_STATUS=1",
+      "evidence": "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:21-24"
+    },
+    {
+      "command": "JSON parse and manifest status checks via local Node scripts",
+      "result": "pass",
+      "output": "chg-1/chg-2 implemented_applied; chg-3/chg-4 deferred_not_approved; approved_changes only chg-1/chg-2",
+      "evidence": "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:23-24"
+    },
+    {
+      "command": "Static contract check for commands/evolve.md and docs/ai/harness/commands.md",
+      "result": "pass",
+      "output": "evaluation-only/debugger-only/no-apply branches present; full AHE and manifest-required-for-applied-change preserved",
+      "evidence": "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:24-25"
+    },
+    {
+      "command": "Diff scope and sensitive filename scan",
+      "result": "pass",
+      "output": "files changed/untracked within allowlist; no provider/model/credential/secret/token/key matches",
+      "evidence": "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:25-26"
+    }
+  ],
+  "results": [
+    {
+      "change_id": "chg-1-ahe-run-lifecycle-validator",
+      "manifest_status": "implemented_applied",
+      "applied": true,
+      "decision": "keep",
+      "decision_notes": "Operationally confirmed. The validator now accepts an evaluator-only AHE intermediate state while preserving strict failure for a run that has a manifest without debugger analysis/closure. No predicted risk task was observed in the post-apply fixtures or harness check.",
+      "predicted_fixes": [
+        {
+          "id": "check-harness-allows-evaluator-only-ahe-run-state",
+          "status": "confirmed",
+          "evidence": "post_apply_evaluation.md:20-22,85-89"
+        },
+        {
+          "id": "check-harness-still-fails-manifest-without-debugger-analysis",
+          "status": "confirmed",
+          "evidence": "post_apply_evaluation.md:21-24,47-54,87-89"
+        },
+        {
+          "id": "ahe-step-1-and-step-2-validation-no-longer-blocked-by-premature-complete-run-shape",
+          "status": "confirmed",
+          "evidence": "post_apply_evaluation.md:20-24,83-90",
+          "note": "Confirmed by local harness check plus evaluator-only fixture; no full /evolve transcript replay was run. The missing replay is tracked as residual evidence, not as a blocking contradiction for this tool-level change."
+        }
+      ],
+      "predicted_fixes_confirmed": [
+        "check-harness-allows-evaluator-only-ahe-run-state",
+        "check-harness-still-fails-manifest-without-debugger-analysis",
+        "ahe-step-1-and-step-2-validation-no-longer-blocked-by-premature-complete-run-shape"
+      ],
+      "predicted_fixes_unconfirmed": [],
+      "risk_tasks": [
+        {
+          "id": "validator-accepts-abandoned-incomplete-runs-too-broadly",
+          "status": "not_observed",
+          "evidence": "post_apply_evaluation.md:21-24,101-107"
+        },
+        {
+          "id": "manifest-shape-errors-hidden-by-lifecycle-exception",
+          "status": "not_observed",
+          "evidence": "post_apply_evaluation.md:21-24,101-107"
+        },
+        {
+          "id": "check-harness-lifecycle-rules-become-hard-to-understand",
+          "status": "not_observed",
+          "evidence": "post_apply_evaluation.md:64-65,101-107"
+        }
+      ],
+      "risk_tasks_observed": [],
+      "risk_tasks_not_observed": [
+        "validator-accepts-abandoned-incomplete-runs-too-broadly",
+        "manifest-shape-errors-hidden-by-lifecycle-exception",
+        "check-harness-lifecycle-rules-become-hard-to-understand"
+      ],
+      "unpredicted_regressions": [],
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/change_manifest.json:52-90",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:18-24",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:83-90",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:101-107"
+      ]
+    },
+    {
+      "change_id": "chg-2-evolve-evaluation-only-contract",
+      "manifest_status": "implemented_applied",
+      "applied": true,
+      "decision": "keep",
+      "decision_notes": "Statically confirmed and safe to keep with a documented replay limitation. The applied change targets command wording; post-apply static checks confirm evaluation-only/debugger-only/no-apply branches and preservation of full AHE manifest requirements. No evidence supports rollback+pivot because no regression was observed; improve is not required for this pass unless reviewer makes transcript replay mandatory before acceptance.",
+      "residual_evidence_non_blocking": [
+        "Transcript replay with opencode run --format json --thinking for evaluation-only/debugger-only/full-flow branches was not run. This remains future evidence for agent behavior, not proof of current regression."
+      ],
+      "predicted_fixes": [
+        {
+          "id": "evolve-audit-only-stops-after-evaluator-or-debugger-when-requested",
+          "status": "confirmed_static_contract",
+          "evidence": "post_apply_evaluation.md:24-25,91-95,117-120"
+        },
+        {
+          "id": "evolve-manifest-created-only-when-evolver-has-sufficient-evidence-and-user-scope-allows-it",
+          "status": "confirmed_static_contract",
+          "evidence": "post_apply_evaluation.md:24-25,91-95"
+        },
+        {
+          "id": "evolve-no-apply-requests-do-not-pressure-developer-implementation",
+          "status": "confirmed_static_contract",
+          "evidence": "post_apply_evaluation.md:24-25,91-95"
+        }
+      ],
+      "predicted_fixes_confirmed": [
+        "evolve-audit-only-stops-after-evaluator-or-debugger-when-requested",
+        "evolve-manifest-created-only-when-evolver-has-sufficient-evidence-and-user-scope-allows-it",
+        "evolve-no-apply-requests-do-not-pressure-developer-implementation"
+      ],
+      "predicted_fixes_unconfirmed": [],
+      "risk_tasks": [
+        {
+          "id": "evolve-skips-required-manifest-after-actual-harness-change",
+          "status": "not_observed_static_contract",
+          "evidence": "post_apply_evaluation.md:24-25,101-109"
+        },
+        {
+          "id": "evolve-command-wording-becomes-too-branchy-for-agents",
+          "status": "not_observed",
+          "evidence": "post_apply_evaluation.md:24-25,112-115",
+          "note": "No agent replay was run; reviewer semantic diff remains recommended."
+        },
+        {
+          "id": "ahe-full-flow-less-obvious-to-users",
+          "status": "not_observed_static_contract",
+          "evidence": "post_apply_evaluation.md:24-25,101-109"
+        }
+      ],
+      "risk_tasks_observed": [],
+      "risk_tasks_not_observed": [
+        "evolve-skips-required-manifest-after-actual-harness-change",
+        "evolve-command-wording-becomes-too-branchy-for-agents",
+        "ahe-full-flow-less-obvious-to-users"
+      ],
+      "unpredicted_regressions": [],
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/change_manifest.json:91-128",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:23-25",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:91-100",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:108-120"
+      ]
+    },
+    {
+      "change_id": "chg-3-slash-command-contract-coverage",
+      "manifest_status": "deferred_not_approved",
+      "applied": false,
+      "decision": "not_applied",
+      "attribution_status": "deferred_not_approved",
+      "decision_notes": "Not evaluated as an applied change. It was explicitly outside the approved developer scope and remains deferred.",
+      "predicted_fixes_confirmed": [],
+      "predicted_fixes_unconfirmed": [],
+      "predicted_fixes_not_applied": [
+        "commands-md-documents-or-classifies-all-visible-slash-commands",
+        "spec-command-cannot-be-read-as-bypassing-required-research-or-design",
+        "research-and-implement-commands-have-evaluable-routing-contracts"
+      ],
+      "risk_tasks_observed": [],
+      "risk_tasks_not_observed": [],
+      "risk_tasks_not_applied": [
+        "auxiliary-command-policy-accidentally-promotes-subtasks-to-top-level-flows",
+        "spec-command-overconstrained-for-simple-direct-spec-requests",
+        "command-coverage-check-creates-maintenance-noise-for intentionally hidden commands"
+      ],
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/change_manifest.json:129-166",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:3-15",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:70-81,112-115"
+      ]
+    },
+    {
+      "change_id": "chg-4-design-open-design-baseurl-contract",
+      "manifest_status": "deferred_not_approved",
+      "applied": false,
+      "decision": "not_applied",
+      "attribution_status": "deferred_not_approved",
+      "decision_notes": "Not evaluated as an applied change. It was explicitly outside the approved developer scope and remains deferred.",
+      "predicted_fixes_confirmed": [],
+      "predicted_fixes_unconfirmed": [],
+      "predicted_fixes_not_applied": [
+        "design-command-no-longer-instructs-impossible-open-design-tool-calls",
+        "design-health-and-list-tools-have-clear-baseurl-source",
+        "feature-visual-flow-less-likely-to-block-before-specifier-due-to-tool-schema-mismatch"
+      ],
+      "risk_tasks_observed": [],
+      "risk_tasks_not_observed": [],
+      "risk_tasks_not_applied": [
+        "design-command-hardcodes-environment-specific-baseurl",
+        "open-design-smoke-still-fails-if-skill-config-source-is-unclear",
+        "design-command-starts-running-artifact-creating-tools-during-audit"
+      ],
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/change_manifest.json:167-204",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:3-15",
+        "docs/ai/evolution/runs/iteration-004-orchestration-audit/post_apply_evaluation.md:70-81,112-115"
+      ]
+    }
+  ],
+  "handoff": {
+    "reviewer_readiness": "ready_for_review",
+    "reviewer_focus": [
+      "Confirm semantic diff for commands/evolve.md and docs/ai/harness/commands.md does not inadvertently implement chg-3 or chg-4.",
+      "Decide whether transcript replay for /evolve is required before merge or can remain future evidence."
+    ],
+    "future_evidence": [
+      "Run opencode run --format json --thinking transcript replay for /evolve evaluation-only/debugger-only/full-flow prompts when a runtime behavior claim is required."
+    ]
+  }
+}

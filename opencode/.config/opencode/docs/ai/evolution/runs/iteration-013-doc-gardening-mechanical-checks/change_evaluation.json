@@ -1,0 +1,32 @@
+{
+  "iteration": 13,
+  "evaluates_iteration": 13,
+  "results": [
+    {
+      "change_id": "chg-1-mechanical-doc-gardening-checks",
+      "predicted_fixes_confirmed": [
+        "The packaged checker now validates AGENTS.md as a short index with references to docs/ai/harness/ and docs/ai/evolution/.",
+        "The packaged checker now validates coverage for agents/*.md in docs/ai/harness/agents.md.",
+        "The packaged checker now validates coverage for commands/*.md in docs/ai/harness/commands.md.",
+        "The packaged checker now validates files and evidence paths in AHE JSON without treating arbitrary prose as a path."
+      ],
+      "predicted_fixes_not_confirmed": [],
+      "risk_tasks_regressed": [],
+      "risk_tasks_not_regressed": [
+        "No workflow phase was added for normal feature work.",
+        "No routing, permission, model, provider, or agent behavior changed.",
+        "The path parser is limited to files and evidence fields so prose is not treated as a path."
+      ],
+      "unpredicted_regressions": [],
+      "decision": "keep",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-013-doc-gardening-mechanical-checks/evaluation.md",
+        "docs/ai/evolution/runs/iteration-013-doc-gardening-mechanical-checks/analysis/overview.md",
+        "docs/ai/evolution/runs/iteration-013-doc-gardening-mechanical-checks/change_manifest.json",
+        "scripts/check-harness.mjs",
+        "docs/ai/harness/checks.md"
+      ],
+      "notes": "This is a static-contract/tooling iteration. Transcript replay is intentionally not required because the change does not modify routing or runtime agent behavior."
+    }
+  ]
+}

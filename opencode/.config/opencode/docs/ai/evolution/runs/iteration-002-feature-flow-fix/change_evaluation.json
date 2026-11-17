@@ -1,0 +1,31 @@
+{
+  "iteration": 2,
+  "evaluates_iteration": 1,
+  "evaluates_manifest": "docs/ai/evolution/runs/iteration-001-sidecar/change_manifest.json",
+  "evaluation_type": "applied_static_attribution",
+  "results": [
+    {
+      "change_id": "chg-1",
+      "applied": true,
+      "decision": "keep",
+      "predicted_fixes_confirmed": [
+        "feature-declares-base-flow-exactly",
+        "feature-designer-researcher-order-ambiguity-removed"
+      ],
+      "predicted_fixes_not_confirmed": [],
+      "risk_tasks_regressed": [],
+      "risk_tasks_not_regressed": [
+        "feature-independent-research-design-over-serialization",
+        "feature-sidecars-accidentally-made-mandatory",
+        "feature-command-scope-expands-beyond-documentation-alignment"
+      ],
+      "unpredicted_regressions": [],
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-002-feature-flow-fix/evaluation.md",
+        "docs/ai/evolution/runs/iteration-002-feature-flow-fix/analysis/overview.md",
+        "commands/feature.md"
+      ],
+      "notes": "The applied change is limited to commands/feature.md. Static evaluation confirms the local base-flow declaration, removes the designer/researcher order ambiguity, keeps sidecars optional, and does not affect /scope or /evolve."
+    }
+  ]
+}

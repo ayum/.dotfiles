@@ -1,0 +1,108 @@
+{
+  "iteration": 1,
+  "evaluation_type": "proposed_only_attribution",
+  "manifest_path": "docs/ai/evolution/runs/iteration-001-sidecar/change_manifest.json",
+  "manifest_status": "proposed",
+  "manifest_applied": false,
+  "developer_invoked": false,
+  "decision": "improve",
+  "decision_rationale": "Technically this is not a keep decision for an applied change: no behavioral change was made, so predicted fixes cannot be confirmed. The proposal remains directionally appropriate and scoped to the identified command-level root cause, while future application should preserve the documented risk constraints and be re-measured before any keep attribution.",
+  "evidence": [
+    "docs/ai/evolution/runs/iteration-001-sidecar/evaluation.md:11-16",
+    "docs/ai/evolution/runs/iteration-001-sidecar/evaluation.md:24-31",
+    "docs/ai/evolution/runs/iteration-001-sidecar/evaluation.md:95-104",
+    "docs/ai/evolution/runs/iteration-001-sidecar/analysis/overview.md:28-32",
+    "docs/ai/evolution/runs/iteration-001-sidecar/analysis/overview.md:47-63",
+    "docs/ai/evolution/runs/iteration-001-sidecar/change_manifest.json:3-4",
+    "docs/ai/evolution/runs/iteration-001-sidecar/change_manifest.json:22-30",
+    "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:5-8",
+    "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:21-40",
+    "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:43-54",
+    "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:70-79",
+    "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:107-115"
+  ],
+  "changes": [
+    {
+      "id": "chg-1",
+      "attribution": "improve",
+      "applied": false,
+      "component_level": "command",
+      "files_proposed": [
+        "commands/feature.md"
+      ],
+      "predicted_fixes": [
+        {
+          "id": "feature-declares-base-flow-exactly",
+          "status": "not_run",
+          "confirmation": "not_confirmed",
+          "reason": "The proposed change was not applied; post-evaluation explicitly treats verification of applied-change fixes as not_run. The original `/feature` fail remains expected in no-change mode.",
+          "evidence": [
+            "docs/ai/evolution/runs/iteration-001-sidecar/change_manifest.json:22-25",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:5-8",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:43-54",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:70-79"
+          ]
+        },
+        {
+          "id": "feature-designer-researcher-order-ambiguity-removed",
+          "status": "not_run",
+          "confirmation": "not_confirmed",
+          "reason": "No change was applied to `commands/feature.md`; the post-evaluation observes that it still lists researcher before designer and still lacks the exact local base-flow declaration.",
+          "evidence": [
+            "docs/ai/evolution/runs/iteration-001-sidecar/change_manifest.json:22-25",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:47-53",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:70-79"
+          ]
+        }
+      ],
+      "risk_tasks": [
+        {
+          "id": "feature-independent-research-design-over-serialization",
+          "observed_status": "no_new_regression_observed",
+          "future_risk_if_applied": true,
+          "reason": "No change was applied, so no new serialization behavior was introduced. If applied later, wording must avoid making design/research sequencing unnecessarily rigid for independent tasks.",
+          "evidence": [
+            "docs/ai/evolution/runs/iteration-001-sidecar/analysis/overview.md:60-63",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:31-41",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:107-115"
+          ]
+        },
+        {
+          "id": "feature-sidecars-accidentally-made-mandatory",
+          "observed_status": "no_new_regression_observed",
+          "future_risk_if_applied": true,
+          "reason": "The second measurement confirms sidecar pass states remain expected in no-change mode. Future application must not convert evaluator/debugger/evolver into normal `/feature` phases.",
+          "evidence": [
+            "docs/ai/evolution/runs/iteration-001-sidecar/evaluation.md:57-68",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:55-68",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:107-109"
+          ]
+        },
+        {
+          "id": "feature-command-scope-expands-beyond-documentation-alignment",
+          "observed_status": "no_new_regression_observed",
+          "future_risk_if_applied": true,
+          "reason": "No tracked behavioral diff was observed. If applied later, the change should remain limited to the `/feature` command documentation because the root cause is localized there.",
+          "evidence": [
+            "docs/ai/evolution/runs/iteration-001-sidecar/analysis/overview.md:52-56",
+            "docs/ai/evolution/runs/iteration-001-sidecar/post_evaluation.md:31-41"
+          ]
+        }
+      ],
+      "regressions": {
+        "newly_observed": [],
+        "summary": "No new regressions were observed in the no-change measurement; the original `/feature` discrepancy persists as expected because the manifest was not applied."
+      },
+      "next_handoff": "If the proposal is later approved and implemented, rerun static evaluation against `/feature`, `/scope`, `/evolve`, and sidecar optionality before converting this attribution to keep or rollback+pivot."
+    }
+  ],
+  "overall_regressions": {
+    "newly_observed": [],
+    "summary": "None newly observed; no behavioral changes were applied."
+  },
+  "handoff": {
+    "specifier_or_evolver": "Treat the manifest as a proposed-only, directionally valid command-level change, not as a confirmed fix.",
+    "developer": "No developer action occurred in this iteration; do not infer applied-change success from this attribution.",
+    "reviewer": "Verify this artifact is evidence-only and that behavior files remain unmodified before accepting the iteration record."
+  }
+}

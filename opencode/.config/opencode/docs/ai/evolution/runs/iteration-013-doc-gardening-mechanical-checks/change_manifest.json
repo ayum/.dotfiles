@@ -1,0 +1,49 @@
+{
+  "iteration": 13,
+  "changes": [
+    {
+      "id": "chg-1-mechanical-doc-gardening-checks",
+      "type": "improvement",
+      "description": "Extend the packaged harness checker so cheap doc-gardening rules are enforced mechanically instead of staying only as manual review guidance.",
+      "files": [
+        "scripts/check-harness.mjs",
+        "docs/ai/harness/checks.md"
+      ],
+      "failure_pattern": "Harness documentation can drift when AGENTS.md stops acting as a short index, new agents or commands are not reflected in docs, or AHE JSON references local artifacts that no longer exist.",
+      "evidence": [
+        "docs/ai/evolution/runs/iteration-013-doc-gardening-mechanical-checks/evaluation.md",
+        "docs/ai/evolution/runs/iteration-013-doc-gardening-mechanical-checks/analysis/overview.md",
+        "docs/ai/harness/checks.md",
+        "scripts/check-harness.mjs"
+      ],
+      "root_cause": "Doc gardening was documented as a lightweight practice, but the checker only validated a subset of the rules, leaving avoidable drift to manual review.",
+      "component_touched": "tooling",
+      "predicted_fixes": [
+        "The checker fails when AGENTS.md no longer references the harness and evolution docs or grows beyond the short-index threshold.",
+        "The checker fails when an agent markdown file is not documented in docs/ai/harness/agents.md.",
+        "The checker fails when a command markdown file is not documented in docs/ai/harness/commands.md.",
+        "The checker fails when files or evidence fields in AHE JSON reference missing local repo paths."
+      ],
+      "risk_tasks": [
+        "Do not add new mandatory workflow phases for normal feature work.",
+        "Do not change routing, permissions, models, providers, or agent behavior.",
+        "Avoid an over-broad path parser that treats prose as a missing local path.",
+        "Keep error messages specific enough for agent remediation."
+      ],
+      "constraint_level": "tool",
+      "why_this_component": "The failure pattern is repository drift in local docs and AHE artifacts, so a local checker is the smallest enforceable boundary. Agent prompts would be weaker and runtime replays are unnecessary because no routing behavior changes.",
+      "post_change_validation": [
+        "Run `node --check scripts/check-harness.mjs`.",
+        "Run `node scripts/check-harness.mjs` and require `Harness check passed.`",
+        "Run a temporary negative control that removes one command documentation marker and require a missing documented command failure.",
+        "Run `./scripts/check.sh` from the public repository root.",
+        "Run `git diff --check`."
+      ],
+      "decision_criteria": {
+        "keep": "All static checks pass and the negative control fails with a clear doc coverage message.",
+        "improve": "The main check passes but the negative control message is unclear or too broad.",
+        "rollback+pivot": "The checker rejects valid historical artifacts or requires behavioral/routing changes to pass."
+      }
+    }
+  ]
+}

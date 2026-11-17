@@ -1,0 +1,14 @@
+{
+  "iteration": 11,
+  "status": "accepted",
+  "checks": [
+    {
+      "name": "static_contract",
+      "status": "passed",
+      "notes": "Lead keeps edit: deny and bash \"*\": ask while explicitly allowing cd and which."
+    }
+  ],
+  "residual_risks": [
+    "Runtime confirmation in a fresh TUI session is recommended after install."
+  ]
+}

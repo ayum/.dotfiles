@@ -1,0 +1,14 @@
+{
+  "iteration": 6,
+  "status": "accepted",
+  "checks": [
+    {
+      "name": "static_contract",
+      "status": "passed",
+      "notes": "/feature now states the intake boundary and preserves fast routing for simple features."
+    }
+  ],
+  "residual_risks": [
+    "Full runtime replay through implementation and review is not claimed here."
+  ]
+}
