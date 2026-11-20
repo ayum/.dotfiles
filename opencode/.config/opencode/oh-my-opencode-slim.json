@@ -1,0 +1,110 @@
+{
+  "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
+  "preset": "kimi",
+  "presets": {
+    "openai": {
+      "orchestrator": {
+        "model": "openai/gpt-6.1-sol",
+        "variant": "medium",
+        "skills": [
+          "*"
+        ]
+      },
+      "oracle": {
+        "model": "openai/gpt-6.1-sol",
+        "variant": "high",
+        "skills": [
+          "simplify",
+          "requesting-code-review"
+        ]
+      },
+      "explorer": {
+        "model": "openai/gpt-6-luna",
+        "variant": "low",
+        "skills": []
+      },
+      "designer": {
+        "model": "openai/gpt-6-luna",
+        "variant": "medium",
+        "skills": []
+      },
+      "fixer": {
+        "model": "openai/gpt-6.1-sol",
+        "variant": "low",
+        "skills": []
+      }
+    },
+    "opencode-go": {
+      "orchestrator": {
+        "model": "opencode-go/minimax-m3",
+        "variant": "thinking",
+        "skills": [
+          "*"
+        ]
+      },
+      "oracle": {
+        "model": "opencode-go/qwen3.8-max",
+        "variant": "xhigh",
+        "skills": [
+          "simplify",
+          "requesting-code-review"
+        ]
+      },
+      "explorer": {
+        "model": "opencode-go/deepseek-v4.1-flash",
+        "variant": "high",
+        "skills": []
+      },
+      "designer": {
+        "model": "opencode-go/kimi-k2.7-code",
+        "skills": []
+      },
+      "fixer": {
+        "model": "opencode-go/deepseek-v4.1-flash",
+        "variant": "high",
+        "skills": []
+      },
+      "observer": {
+        "model": "opencode-go/mimo-v2.5",
+        "skills": []
+      }
+    },
+    "kimi": {
+      "orchestrator": {
+        "model": "kimi-code-plan-global/k3.1-pro",
+        "variant": "high",
+        "skills": [
+          "*"
+        ]
+      },
+      "oracle": {
+        "model": "kimi-code-plan-global/k3.1-pro",
+        "variant": "max",
+        "skills": [
+          "simplify",
+          "requesting-code-review"
+        ]
+      },
+      "explorer": {
+        "model": "kimi-code-plan-global/k3",
+        "variant": "low",
+        "skills": []
+      },
+      "designer": {
+        "model": "kimi-code-plan-global/kimi-for-coding",
+        "variant": "high",
+        "skills": []
+      },
+      "fixer": {
+        "model": "kimi-code-plan-global/k3.1-pro",
+        "variant": "low",
+        "skills": []
+      },
+      "observer": {
+        "model": "kimi-code-plan-global/k3",
+        "variant": "low",
+        "skills": []
+      }
+    }
+  }
+}
